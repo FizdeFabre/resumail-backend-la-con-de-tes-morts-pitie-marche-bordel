@@ -36,7 +36,7 @@ const {
   STRIPE_WEBHOOK_SECRET,
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
- SERVER_ROOT_URL=" https://resumail-backendv4.onrender.com",
+ SERVER_ROOT_URL="https://resumail-backendv4.onrender.com",
 FRONTEND_URL="https://resumail.vercel.app",
   PORT = 3000,
   TOKENS_FILE = "tokens.json",
