@@ -725,23 +725,6 @@ Format:
   }
 });
 
-// Optional: delete stored tokens for a user (logout)
-app.delete("/tokens", (req, res) => { 
-  try {
-    const user = req.query.user;
-    if (!user) return res.status(400).json({ error: "Missing user param" });
-    const tokensStore = readTokensFile();
-    if (tokensStore[user]) {
-      delete tokensStore[user];
-      writeTokensFile(tokensStore);
-    }
-    return res.json({ ok: true });
-  } catch (err) {
-    console.error("DELETE /tokens error:", err);
-    return res.status(500).json({ error: "Failed to delete tokens" });
-  }
-});
-
 // ✅ Route pour récupérer les rapports d'un utilisateur
 
 app.get('/reports', async (req, res) => {
@@ -795,6 +778,41 @@ app.get('/reports', async (req, res) => {
   }
 });
 
+// ✅ Nouvelle route pour récupérer une liste de mini-rapports par ID
+app.get('/reports/byIds', async (req, res) => {
+  try {
+    const ids = req.query.ids?.split(',').map((id) => id.trim()).filter(Boolean);
+    if (!ids?.length) {
+      return res.status(400).json({ error: 'Missing ids parameter' });
+    }
+
+    const { data, error } = await supabase
+      .from('reports')
+      .select(`
+        id,
+        user_id,
+        created_at,
+        total_emails,
+        sentiment_overall,
+        classification,
+        is_final,
+        highlights,
+        report_text,
+        summary,
+        mini_report_ids
+      `)
+      .in('id', ids);
+
+    if (error) throw error;
+
+    res.json(data || []);
+  } catch (err) {
+    console.error('/reports/byIds error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 // Route stats
 app.get('/stats/:userId', async (req, res) => {
   try {
@@ -837,6 +855,5 @@ app.get('/stats/:userId', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`🚀 Resumail backend running on port ${PORT}`));
-
 
 // contact@hozana.org, newsletter@mag.genealogie.com, emails@hamza-ahmed.co.uk, hello@chess.com, News@insideapple.apple.com, mj@thefastlaneforum.com
