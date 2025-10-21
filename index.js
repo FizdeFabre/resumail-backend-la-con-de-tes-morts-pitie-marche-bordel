@@ -1,19 +1,3 @@
-// server/index.js
-/**
- * Resumail backend (clean, single-file)
- *
- * Required env vars:
- *  - GOOGLE_CLIENT_ID
- *  - GOOGLE_CLIENT_SECRET
- *  - OPENAI_API_KEY
- *  - STRIPE_SECRET_KEY
- *  - STRIPE_WEBHOOK_SECRET
- *
- * Optional (if you want the server to update user credits in Supabase):
- *  - SUPABASE_URL
- *  - SUPABASE_SERVICE_ROLE_KEY
- */
-
 import express from "express";
 import cors from "cors";
 import fs from "fs";
@@ -419,24 +403,22 @@ app.get("/auth/callback", async (req, res) => {
     if (!code) return res.status(400).send("Missing code");
 
     const { tokens } = await oauth2Client.getToken(code);
-    // store tokens in memory client for subsequent Gmail calls
     oauth2Client.setCredentials(tokens);
 
     const email = await getUserEmailFromTokens(tokens);
     if (!email) return res.status(500).send("Could not determine Gmail address");
 
-    // persist tokens to tokens.json
     const tokensStore = readTokensFile();
     tokensStore[email] = tokens;
     writeTokensFile(tokensStore);
 
-    // redirect to frontend filters page (so frontend picks user from URL)
-    const frontUrl = `${FRONTEND_URL}/filters?user=${encodeURIComponent(email)}`;
-    console.log("OAuth callback, redirect to:", frontUrl);
-    res.redirect(frontUrl);
+    // ✅ Redirige proprement vers le frontend
+    const redirectUrl = `${FRONTEND_URL}/filters?user=${encodeURIComponent(email)}`;
+    console.log("✅ OAuth success, redirecting to:", redirectUrl);
+    return res.redirect(302, redirectUrl);
   } catch (err) {
-    console.error("Callback error:", err);
-    res.status(500).send("Auth callback error");
+    console.error("❌ OAuth callback error:", err);
+    return res.status(500).send("Auth callback error");
   }
 });
 
@@ -855,5 +837,6 @@ app.get('/stats/:userId', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`🚀 Resumail backend running on port ${PORT}`));
+
 
 // contact@hozana.org, newsletter@mag.genealogie.com, emails@hamza-ahmed.co.uk, hello@chess.com, News@insideapple.apple.com, mj@thefastlaneforum.com
