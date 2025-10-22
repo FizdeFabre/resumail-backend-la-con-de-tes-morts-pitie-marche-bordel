@@ -854,6 +854,63 @@ app.get('/stats/:userId', async (req, res) => {
   }
 });
 
+app.get("/reports/:id/pdf", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).send("Missing report ID");
+
+    // Récupération du rapport dans Supabase
+    const { data: report, error } = await supabase
+      .from("reports")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error || !report)
+      return res.status(404).send("Report not found");
+
+    // Génération du contenu PDF
+    const doc = new jsPDF();
+    const title = "Rapport d'analyse Resumail 📨";
+    const date = new Date(report.created_at).toLocaleDateString("fr-FR");
+
+    doc.setFontSize(18);
+    doc.text(title, 20, 30);
+    doc.setFontSize(12);
+    doc.text(`Date : ${date}`, 20, 50);
+    doc.text(`Utilisateur : ${report.user_id}`, 20, 65);
+    doc.text(`Emails analysés : ${report.total_emails}`, 20, 80);
+
+    doc.setFontSize(14);
+    doc.text("Résumé :", 20, 110);
+    doc.setFontSize(12);
+    doc.text(doc.splitTextToSize(report.summary || "Aucun résumé disponible", 500), 20, 130);
+
+    doc.setFontSize(14);
+    doc.text("Points forts :", 20, 180);
+    doc.setFontSize(12);
+    if (Array.isArray(report.highlights)) {
+      report.highlights.forEach((h, i) => {
+        doc.text(`• ${h.text || h}`, 25, 200 + i * 15);
+      });
+    } else {
+      doc.text("Aucun point fort disponible.", 25, 200);
+    }
+
+    // Envoi du PDF au navigateur
+    const pdf = doc.output("arraybuffer");
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename=rapport_${id}.pdf`
+    );
+    res.send(Buffer.from(pdf));
+  } catch (err) {
+    console.error("/reports/:id/pdf error:", err);
+    res.status(500).send("Erreur lors de la génération du PDF");
+  }
+});
+
 app.listen(PORT, () => console.log(`🚀 Resumail backend running on port ${PORT}`));
 
 // contact@hozana.org, newsletter@mag.genealogie.com, emails@hamza-ahmed.co.uk, hello@chess.com, News@insideapple.apple.com, mj@thefastlaneforum.com
